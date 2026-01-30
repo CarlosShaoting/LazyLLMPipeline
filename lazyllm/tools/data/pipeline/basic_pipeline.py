@@ -9,3 +9,7 @@ def build_demo_pipeline():
         ppl.add_suffix = AddSuffix(input_key='text', suffix='!!!', _max_workers=4)
         ppl.rich_content = rich_content(input_key='text')
     return ppl
+
+if __name__ == "__main__":
+    result = build_demo_pipeline()
+    print(result([{'text':'Hello'}, {'text':'???'}]))

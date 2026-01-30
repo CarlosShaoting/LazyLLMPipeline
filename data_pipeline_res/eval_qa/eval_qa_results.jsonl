@@ -1,0 +1,5 @@
+{"content": "sentence 1", "query": "根据sentence 1生成的query", "answer": "根据sentence 1生成的answer", "eval": 1}
+{"content": "sentence 2", "query": "根据sentence 2生成的query", "answer": "根据sentence 2生成的answer", "eval": 5}
+{"content": "sentence 3", "query": "根据sentence 3生成的query", "answer": "根据sentence 3生成的answer", "eval": 5}
+{"content": "sentence 1", "query": "根据sentence 1生成的query", "answer": "根据sentence 1生成的answer", "eval": 1}
+{"content": "sentence 1", "query": "根据sentence 1生成的query", "answer": "根据sentence 1生成的answer", "eval": 5}

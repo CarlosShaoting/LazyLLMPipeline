@@ -12,13 +12,6 @@ DEFAULT_MODEL = 'qwen2.5-0.5B-instruct'
 DEFAULT_TOKENIZER = 'Qwen/Qwen2.5-0.5B'
 Text2qa = data_register.new_group('Text2qa')
 
-def boxed_res_extractor(text):
-    if not isinstance(text, str):
-        return None
-    pattern = r'\\boxed\{(?P<content>(?:[^{}]+|\{(?&content)\})*)\}'
-    matches = regex.findall(pattern, text)
-    return matches[-1].strip() if matches else None
-
 class TextToChunks(Text2qa):
     def __init__(self,
                  input_key='content',

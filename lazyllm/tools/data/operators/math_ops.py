@@ -1,28 +1,20 @@
 from ..base_data import data_register
-import regex
 from lazyllm import TrainableModule, LOG
 import re
 from lazyllm.thirdparty import transformers
 from lazyllm.components.formatter import JsonFormatter
+from lazyllm.tools.data.operators.utils import boxed_res_extractor
 
 DEFAULT_MODEL = 'qwen2.5-0.5B-instruct'
 DEFAULT_TOKENIZER = 'Qwen/Qwen2.5-0.5B'
 MathQA = data_register.new_group('mathQA')
 
 
-def boxed_extractor(text):
-    if not isinstance(text, str):
-        return None
-    pattern = r'\\boxed\{(?P<content>(?:[^{}]+|\{(?&content)\})*)\}'
-    matches = regex.findall(pattern, text)
-    return matches[-1].strip() if matches else None
-
-
 @data_register('data.mathQA', rewrite_func='forward')
 def math_answer_extractor(data, input_key='answer', output_key='math_answer'):
     assert isinstance(data, dict)
     answer = data[input_key]
-    math_answer = boxed_extractor(answer)
+    math_answer = boxed_res_extractor(answer)
     data[output_key] = math_answer
     return data
 
@@ -433,3 +425,10 @@ class QuestionFusionGenerator(MathQA):
         data[self.output_key] = res.get(self.output_key)
 
         return data
+
+@data_register('data.Text2qa', rewrite_func='forward')
+def wrong_answer_filter(data, input_key, min_score):
+    score = data.get(input_key, 0)
+    if score >= min_score:
+        return None
+    return []

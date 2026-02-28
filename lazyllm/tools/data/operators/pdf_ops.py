@@ -1,47 +1,114 @@
-from ..base_data import data_register
-from lazyllm.tools.rag import MineruPDFReader
-from lazyllm import LOG
-
-Pdf2Qa = data_register.new_group('pdf2Qa')
+from typing import Optional
+from lazyllm import pipeline, OnlineChatModule
+from lazyllm.tools.data import Pdf2QA, Pdf2Qa, Text2qa
 
 
-class Pdf2Md(Pdf2Qa):
-    def __init__(self,
-                 input_key='pdf_path',
-                 output_key='docs',
-                 reader_url=None,
-                 backend='vlm-vllm-async-engine',
-                 upload_mode=True,
-                 use_cache=False,
-                 **kwargs):
+def build_pdf2qa_pipeline(
+        model,
+        mineru_api,
 
-        super().__init__(_concurrency_mode='thread', **kwargs)
-        if not reader_url:
-            raise ValueError('You must pass in a reader_url.')
+        # ===== Pdf2Md =====
+        pdf_input_key: str = 'pdf_path',
+        pdf_output_key: str = 'docs',
+        pdf_upload_mode: bool = True,
+        pdf_use_cache: bool = False,
 
-        self.input_key = input_key
-        self.output_key = output_key
-        self.use_cache = use_cache
+        # ===== TextToChunks =====
+        text_key: str = 'text',
+        chunk_key: str = 'chunk',
+        tokenizer=None,
+        chunk_size: int = 100,
+        tokenize: bool = False,
 
-        self.reader = MineruPDFReader(
-            url=reader_url,
-            backend=backend,
-            upload_mode=upload_mode
+        # ===== PdfChunkToQA =====
+        qa_input_key: str = 'chunk',
+        qa_query_key: str = 'query',
+        qa_answer_key: str = 'answer',
+        qa_user_prompt: Optional[str] = None,
+        qa_image_key: str = 'image_path',
+
+        # ===== PdfQAScorer =====
+        scorer_input_key: str = 'chunk',
+        scorer_output_key: str = 'score',
+        scorer_query_key: str = 'query',
+        scorer_answer_key: str = 'answer',
+        scorer_user_prompt: Optional[str] = None,
+        scorer_image_key: str = 'image_path',
+
+        # ===== Filter =====
+        filter_input_key: str = 'score',
+        threshold: float = 1,
+):
+    with pipeline() as ppl:
+
+        # ========= 1️⃣ PDF → Markdown =========
+        ppl.pdf2md = Pdf2Qa.Pdf2Md(
+            input_key=pdf_input_key,
+            output_key=pdf_output_key,
+            reader_url=mineru_api,
+            upload_mode=pdf_upload_mode,
+            use_cache=pdf_use_cache,
         )
 
-    def forward(self, data):
-        pdf_path = data.get(self.input_key)
-        if not pdf_path:
-            return None
+        # ========= 2️⃣ Text → Chunks =========
+        ppl.text_to_chunks = Text2qa.TextToChunks(
+            input_key=text_key,
+            output_key=chunk_key,
+            tokenizer=tokenizer,
+            chunk_size=chunk_size,
+            tokenize=tokenize
+        )
 
-        try:
-            docs = self.reader(
-                file=pdf_path,
-                use_cache=self.use_cache
-            )
-            data[self.output_key] = docs
+        # ========= 3️⃣ Chunk → QA =========
+        ppl.generate_qa = Pdf2Qa.PdfChunkToQA(
+            input_key=qa_input_key,
+            query_key=qa_query_key,
+            answer_key=qa_answer_key,
+            model=model,
+            user_prompt=qa_user_prompt,
+            mineru_api=mineru_api,
+            image_key=qa_image_key,
+        )
 
-        except Exception as e:
-            LOG.warning(f'PDF read failed: {e}')
-            data[self.output_key] = None
-        return data
+        # ========= 4️⃣ QA Scoring =========
+        ppl.qa_scorer = Pdf2Qa.PdfQAScorer(
+            input_key=scorer_input_key,
+            output_key=scorer_output_key,
+            query_key=scorer_query_key,
+            answer_key=scorer_answer_key,
+            model=model,
+            user_prompt=scorer_user_prompt,
+            image_key=scorer_image_key,
+        )
+
+        ppl.quality_filter = Pdf2QA.multi_features_filter(
+            input_key=filter_input_key,
+            threshold=threshold,
+        )
+
+    return ppl
+
+if __name__ == '__main__':
+
+    model = OnlineChatModule(
+        source='sensenova',
+        model='SenseChat-Vision'
+    )
+
+    mineru_api = 'http://10.119.30.80:20234'
+
+    test_path = {
+        'pdf_path': '/home/mnt/cuishaoting/LazyLLM/lazyllm/tools/data/pipelines/test_mineru.pdf'
+    }
+
+    ppl = build_pdf2qa_pipeline(
+        model=model,
+        mineru_api=mineru_api,
+        text_key='content',
+        chunk_size=200,
+        threshold=1
+    )
+
+    result = ppl(test_path)
+
+    print(len(result))

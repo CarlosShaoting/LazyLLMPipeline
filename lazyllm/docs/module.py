@@ -2816,7 +2816,7 @@ add_english_doc('llms.onlinemodule.supplier.doubao.DoubaoText2Image', '''\
 ByteDance Doubao Text-to-Image module supporting text to image generation and image editing.
 
 Based on ByteDance Doubao multimodal model's text-to-image functionality, inherits from
-LazyLLMOnlineText2ImageModuleBase and calls Doubao via the Volcengine Ark SDK for high-quality generation.
+LazyLLMOnlineText2ImageModuleBase and calls the Volcengine Ark REST API for high-quality generation.
 
 Args:
     api_key (str, optional): Doubao API key, defaults to None.
@@ -2844,7 +2844,7 @@ Args:
 add_english_doc('llms.onlinemodule.supplier.doubao.DoubaoText2Video', '''\
 ByteDance Doubao Text-to-Video module based on Seedance models, inherits from LazyLLMOnlineText2VideoModuleBase.
 
-Uses Volcengine Ark async ``content_generation.tasks`` API. Supports text-to-video and first-frame image-to-video.
+Uses Volcengine Ark async content-generation task REST API. Supports text-to-video and first-frame image-to-video.
 
 Args:
     api_key (str, optional): Doubao API key, defaults to configured doubao_api_key.
